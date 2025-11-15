@@ -4,7 +4,7 @@ from typing import Optional, List
 
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -31,7 +31,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 # ----------------------------------------------------------------------------
@@ -50,10 +50,6 @@ class UserOut(BaseModel):
 
 class RegisterPayload(BaseModel):
     name: str
-    email: EmailStr
-    password: str
-
-class LoginPayload(BaseModel):
     email: EmailStr
     password: str
 
@@ -188,11 +184,11 @@ def register(payload: RegisterPayload):
 
 
 @app.post("/auth/login", response_model=Token)
-def login(payload: LoginPayload):
-    user = get_user_by_email(payload.email)
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = get_user_by_email(form_data.username)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
-    if not verify_password(payload.password, user.get("password_hash", "")):
+    if not verify_password(form_data.password, user.get("password_hash", "")):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     if not user.get("is_active", True):
         raise HTTPException(status_code=400, detail="User is inactive")
