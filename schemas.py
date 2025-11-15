@@ -1,48 +1,42 @@
 """
-Database Schemas
+Database Schemas for PlayHub (Turf Booking)
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
+Each Pydantic model represents a MongoDB collection. Collection name = lowercase class name.
 
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+- User -> user
+- Turf -> turf
+- Booking -> booking
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
-
-# Example schemas (replace with your own):
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, List
+from datetime import datetime
 
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
     name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
+    email: EmailStr = Field(..., description="Unique email address")
+    password_hash: str = Field(..., description="BCrypt hashed password")
+    role: str = Field("user", description="user | admin")
+    avatar_url: Optional[str] = Field(None, description="Profile avatar URL")
     is_active: bool = Field(True, description="Whether user is active")
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class Turf(BaseModel):
+    name: str = Field(..., description="Turf name")
+    location: str = Field(..., description="City/Area")
+    description: Optional[str] = Field(None, description="Short description")
+    price_per_hour: float = Field(..., ge=0, description="Hourly price")
+    images: List[str] = Field(default_factory=list, description="Image URLs")
+    facilities: List[str] = Field(default_factory=list, description="List of facilities")
+    is_active: bool = Field(True, description="Visible to users")
 
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Booking(BaseModel):
+    user_id: str = Field(..., description="User ObjectId as string")
+    turf_id: str = Field(..., description="Turf ObjectId as string")
+    date: str = Field(..., description="ISO date (YYYY-MM-DD)")
+    start_time: str = Field(..., description="Start time (HH:MM)")
+    end_time: str = Field(..., description="End time (HH:MM)")
+    total_price: float = Field(..., ge=0, description="Computed total price")
+    status: str = Field("confirmed", description="confirmed | cancelled | pending")
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
